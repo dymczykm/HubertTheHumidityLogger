@@ -7,7 +7,7 @@
 
 #include <Seeed_BME280.h>
 
-String Apikey = "?????";                                                //Thingspeak write API key
+String adafruit_io_key = "aio_JeFc31mpZomKU8KaxpU8QTDlmT5n";
 
 #define DEBUG true                                                      //Define LTE parameters and pin functions
 #define LTE_RESET_PIN 6
@@ -44,22 +44,26 @@ void setup()
     
     delay(5000);                                                        //Wait 5 seconds
 
-    if(!bme280.init()) {                                                  //Connect to pressure sensor
-      Serial.println("BME280 init error!");
-    }
+//    if(!bme280.init()) {                                                  //Connect to pressure sensor
+//      Serial.println("BME280 init error!");
+//    }
 
     SerialUSB.println("BME init complete.");
     
     delay(1000);                                                        //Wait 1 second for sensors to start
 
     SerialUSB.println("Setup complete.");
+
+    sendData("ATI\r\n", 1000, DEBUG);
+
+    sendData("AT+HTTPTERM\r\n", 1000, DEBUG);
 }
 
 void loop()
 {
-    float temperature = bme280.getTemperature();
-    float pressure_hpa = bme280.getPressure() / 100;
-    float humidity = bme280.getHumidity(); 
+    float temperature = 0; //bme280.getTemperature();
+    float pressure_hpa = 0; //bme280.getPressure() / 100;
+    float humidity = 0; //bme280.getHumidity(); 
     temperature = 21;
     pressure_hpa = 1000;
     humidity = 55;
@@ -73,12 +77,36 @@ void loop()
     SerialUSB.print(pressure_hpa);
     SerialUSB.println("hPa");
 
-    String http_str = "AT+HTTPPARA=\"URL\",\"https://api.thingspeak.com/update?api_key=" + Apikey + "&field1=" + (String)temperature + "&field2=" + (String)humidity + "&field3=" + (String)pressure_hpa + "\"\r\n";
+    //String http_str = "AT+HTTPPARA=\"URL\",\"https://api.thingspeak.com/update?api_key=" + Apikey + "&field1=" + (String)temperature + "&field2=" + (String)humidity + "&field3=" + (String)pressure_hpa + "\"\r\n";
     //SerialUSB.println(http_str);                                     //Print to serial monitor for debugging
 
-    sendData("AT+HTTPINIT\r\n", 2000, DEBUG);                          //Send the data to Thingspeak
-    sendData(http_str, 2000, DEBUG);
-    sendData("AT+HTTPACTION=0\r\n", 3000, DEBUG);
+    String http_str = "AT+HTTPPARA=\"URL\",\"https://io.adafruit.com/api/v2/mdymczyk/feeds/temperature/data\"\r\n";
+    String http_str2 = "AT+HTTPPARA=\"CONTENT\",\"application/json\"\r\n";
+    String http_str3 = "AT+HTTPPARA=\"USERDATA\",\"X-AIO-Key: aio_JeFc31mpZomKU8KaxpU8QTDlmT5n\"\r\n";
+    
+    //String http_str2 = "AT+HTTPPARA=\"CONTENT\",\"text/plain\"\r\n";
+    
+    String data_json = "{\"value\": 39, \"lat\": 23.1, \"lon\": \"-73.3\"}";
+    String data_plain = "\"value=42\"";
+
+    String data = data_json;
+    
+    String http_str5 = "AT+HTTPDATA=" + String(data.length()) + ",9900\r\n";
+
+    sendData("AT+HTTPINIT\r\n", 2000, DEBUG);
+    sendData(http_str, 1000, DEBUG);
+    sendData(http_str2, 1000, DEBUG);
+    sendData(http_str3, 1000, DEBUG);
+
+    sendData(http_str5, 3000, DEBUG);
+    delay(100);
+    sendData(data, 2000, DEBUG);
+    sendData("AT+HTTPACTION=1\r\n", 10000, DEBUG);
+
+    sendData("AT+HTTPHEAD\r\n", 10000, DEBUG);
+    sendData("AT+HTTPREAD=0,200\r\n", 10000, DEBUG);
+
+    
     sendData("AT+HTTPTERM\r\n", 3000, DEBUG);
 
     delay(5000);                                                      //Wait 120 seconds

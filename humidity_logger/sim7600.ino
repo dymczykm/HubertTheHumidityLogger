@@ -11,7 +11,6 @@ bool initModem() {
   return true;
 }
 
-
 void powerUp() {
   Serial1.begin(115200);
    
@@ -33,7 +32,17 @@ void cyclePowerKey() {
 }
 
 void waitUntilModemResponds() {
-  sendCommandUntilReplyCorrect(F("AT"), F("AT\n\rOK"), 500, 20);
+  bool status = false;
+  do {
+    for (int i = 0; i < 3 && !status; ++i) {
+      status |= sendCommandUntilReplyCorrect(F("AT"), F("AT\n\rOK"), 500, 3);
+      // Also support the case when the modem was not restarted and the echo is already turned off.
+      status |= sendCommandUntilReplyCorrect(F("AT"), F("OK"), 500, 3);
+    }
+    if (!status) {
+      cyclePowerKey();
+    }
+  } while (!status);
 }
 
 void disableEcho() {
@@ -48,6 +57,67 @@ void waitUntilGprsReady() {
   sendCommandUntilReplyCorrect(F("AT+CGATT?"), F("+CGATT: 1\nOK"), 500, 20);
 }
 
+int parseHttpActionReply(const String& http_action_reply) {
+  if (http_action_reply.length() == 0) {
+    SerialUSB.println("Error: empty HTTPACTION response.");
+    return false;
+  }
+  const int first_comma_idx = http_action_reply.indexOf(",");
+  const int second_comma_idx = http_action_reply.indexOf(",", first_comma_idx + 1);
+  
+  String http_code = http_action_reply.substring(first_comma_idx + 1, second_comma_idx);
+  return http_code.toInt();  
+}
+
+int httpPost(const String& url, const String& content_type, const String& data) {
+  const String url_str = (String)F("AT+HTTPPARA=\"URL\",\"") + url + F("\"");
+  const String content_str = (String)F("AT+HTTPPARA=\"CONTENT\",\"") + content_type + F("\"");
+  
+  // This doesn't work, seems to be a bug within SIM7600. It definitely doesn't show up in the outgoing request.
+  // String aio_key_str = "AT+HTTPPARA=\"USERDATA\",\"x-aio-key: <key>\""; 
+   
+  const String data_cmd_str = (String)F("AT+HTTPDATA=") + String(data.length()) + F(",9900");
+  
+  if (!sendCommandAndCheckReply(F("AT+HTTPINIT"), "OK", 200)) {
+    sendCommandAndCheckReply(F("AT+HTTPTERM"), "OK", 200);
+    return -1;  
+  }
+  
+  sendCommandAndCheckReply(url_str, "OK", 200);
+  sendCommandAndCheckReply(content_str, "OK", 200);
+  
+  sendCommandAndCheckReply(data_cmd_str, "DOWNLOAD", 200);
+  delay(100);
+  sendCommandAndCheckReply(data, "OK", 1000);
+  
+  const String action_response = sendCommandAndReadReply(F("AT+HTTPACTION=1"), 10000);
+  
+  sendCommandAndCheckReply(F("AT+HTTPTERM"), "OK", 200);
+  
+  return parseHttpActionReply(action_response);
+}
+
+int httpGet(const String& url, const String& content_type, String& response) {
+  const String url_str = (String)F("AT+HTTPPARA=\"URL\",\"") + url + F("\"");
+  const String content_str = (String)F("AT+HTTPPARA=\"CONTENT\",\"") + content_type + F("\"");
+
+  if (!sendCommandAndCheckReply(F("AT+HTTPINIT"), "OK", 200)) {
+    sendCommandAndCheckReply(F("AT+HTTPTERM"), "OK", 200);
+    return -1;  
+  }
+  
+  sendCommandAndCheckReply(url_str, "OK", 200);
+  sendCommandAndCheckReply(content_str, "OK", 200);
+
+  const String action_response = sendCommandAndReadReply(F("AT+HTTPACTION=0"), 10000);
+
+  sendCommandAndCheckReply(F("AT+HTTPTERM"), "OK", 200);
+
+  return parseHttpActionReply(action_response);
+}
+
+
+
 bool sendCommandUntilReplyCorrect(const String& command, const String& reply, int timeout_ms, int max_num_trials) {
   bool result = false;
   int num_trials = 0;
@@ -59,9 +129,6 @@ bool sendCommandUntilReplyCorrect(const String& command, const String& reply, in
 
   return result;
 }
-
-
-
 
 void trimString(String& string) {
   string.trim();
@@ -87,14 +154,12 @@ bool sendCommandAndCheckReply(const String& command, const String& expected_repl
   trimString(expected_reply_trim);
 
   if (reply == expected_reply_trim) {
-    SerialUSB.println("Expected response received.");
     return true;
   } else {
-    SerialUSB.println("Reply does not match the expected one: \"" + replaceCrLfWithText(reply) + "\" while \"" + replaceCrLfWithText(expected_reply_trim) + "\" was expected.");
+    SerialUSB.println((String)F("Reply does not match the expected one: \"") + replaceCrLfWithText(reply) + F("\" while \"") + replaceCrLfWithText(expected_reply_trim) + F("\" was expected."));
     return false;
   }
 }
-
 
 String sendCommandAndReadReply(const String& command, int timeout_ms) {
   Serial1.println(command + "\r\n");
@@ -109,7 +174,7 @@ String sendCommandAndReadReply(const String& command, int timeout_ms) {
   }
   if (DEBUG) {
     SerialUSB.print("Sent command: " + command + "\r\n");
-    SerialUSB.print("Got response: \r\n" + response);
+    //SerialUSB.print("Got response: \r\n" + response);
   }
   return response;
 }

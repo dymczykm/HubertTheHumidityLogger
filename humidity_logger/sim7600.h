@@ -15,6 +15,11 @@ void waitUntilModemResponds();
 void waitUntilNetworkReady();
 void waitUntilGprsReady();
 
+int parseHttpActionReply(const String& http_action_reply);
+
+int httpPost(const String& url, const String& content_type, const String& data);
+int httpGet(const String& url, const String& content_type, String& response);
+
 bool sendCommandUntilReplyCorrect(const String& command, const String& reply, int timeout_ms);
 
 bool sendCommandAndCheckReply(const String& command, const String& reply, int timeout_ms);

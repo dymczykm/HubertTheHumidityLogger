@@ -1,69 +1,39 @@
-//MakerFabs Weather Station with 4G
-//The DIY Life by Michael Klements
-//4 December 2021
-
 #include <stdio.h>                                                      //Include the required libraries
 #include <string.h>
 
 #include <Seeed_BME280.h>
 
+#include "sim7600.h"
+
 String adafruit_io_key = "aio_JeFc31mpZomKU8KaxpU8QTDlmT5n";
 
-#define DEBUG true                                                      //Define LTE parameters and pin functions
-#define LTE_RESET_PIN 6
-#define LTE_PWRKEY_PIN 5
-#define LTE_FLIGHT_PIN 7
+#define DEBUG 1                                                      //Define LTE parameters and pin functions
+
 
 BME280 bme280;
 
+// CGACT, AT+CSCLK=2 CGATT
+
 void setup()
 {
-    SerialUSB.begin(115200);
-    while (!SerialUSB)
-    {
-      ; // wait for Arduino serial Monitor port to connect
-    }
-    Serial1.begin(115200);
-    
-    SerialUSB.println("Init");
+  SerialUSB.begin(115200);
+  while (!SerialUSB)
+  {
+    ; // wait for Arduino serial Monitor port to connect
+  }
   
-    pinMode(LTE_RESET_PIN, OUTPUT);
-    digitalWrite(LTE_RESET_PIN, LOW);
-    pinMode(LTE_PWRKEY_PIN, OUTPUT);
-    digitalWrite(LTE_RESET_PIN, LOW);
-    delay(100);
-    digitalWrite(LTE_PWRKEY_PIN, HIGH);
-    delay(2000);
-    digitalWrite(LTE_PWRKEY_PIN, LOW);
-    pinMode(LTE_FLIGHT_PIN, OUTPUT);
-    digitalWrite(LTE_FLIGHT_PIN, LOW);
-
-    delay(1000);
-    
-    sendData("AT+CRESET\r\n", 500, DEBUG);
-    delay(10000);
-
-    String status_response;
-    int status_code = -1;
-    do {
-      delay(1000);
-      status_response = sendData("AT+CGREG?\r\n", 500, DEBUG);
-      const int comma_idx = status_response.indexOf(",");
-      status_code = status_response.substring(comma_idx + 1, comma_idx + 2).toInt();
-      SerialUSB.println("CGREG status: " + (String)status_code);
-    } while (status_code != 1);
-    
-    SerialUSB.println("LTE init complete.");
-
-//    if(!bme280.init()) {
-//      Serial.println("BME280 init error!");
-//    }
-
-    SerialUSB.println("BME init complete.");
-
-    delay(1000);
-    
-    SerialUSB.println("Setup complete.");
+  SerialUSB.println("Init LTE.");
+  initModem();
+  
+  SerialUSB.println(F("LTE init complete."));
+  
+  //    if(!bme280.init()) {
+  //      Serial.println("BME280 init error!");
+  //    }
+  
+  SerialUSB.println(F("BME init complete."));
+  
+  SerialUSB.println(F("Setup complete."));
 }
 
 bool postToFeed(String feed, float value) {
@@ -155,8 +125,7 @@ void loop()
   delay(5000);
 }
 
-String sendData(String command, const int timeout, boolean debug)       //Function to send data over 4G
-{
+String sendData(String command, const int timeout, boolean debug) {
   String response = "";
   Serial1.println(command);
   

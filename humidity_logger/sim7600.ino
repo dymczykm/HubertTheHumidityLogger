@@ -69,6 +69,25 @@ int parseHttpActionReply(const String& http_action_reply) {
   return http_code.toInt();  
 }
 
+String readHttpResponseData() {
+  // Check how many bytes should be read.
+  const String reply_bytes_str = sendCommandAndReadReply(F("AT+HTTPREAD?"), 200);
+
+  // Format: +HTTPREAD: LEN,<len>
+  if (reply_bytes_str.indexOf("OK") < 0) {
+    SerialUSB.println("Error: failed to read HTTP response: " + reply_bytes_str);
+    return "";
+  }
+  
+  const int first_idx = reply_bytes_str.indexOf(",");
+  const int second_idx = reply_bytes_str.indexOf("\r", first_idx + 1);
+
+  const int bytes_to_read = reply_bytes_str.substring(first_idx + 1, second_idx).toInt();
+
+  const String reply = sendCommandAndReadReply((String)F("AT+HTTPREAD=") + (String)bytes_to_read, 2000);
+  return reply;
+}
+
 int httpPost(const String& url, const String& content_type, const String& data) {
   const String url_str = (String)F("AT+HTTPPARA=\"URL\",\"") + url + F("\"");
   const String content_str = (String)F("AT+HTTPPARA=\"CONTENT\",\"") + content_type + F("\"");
@@ -110,6 +129,8 @@ int httpGet(const String& url, const String& content_type, String& response) {
   sendCommandAndCheckReply(content_str, "OK", 200);
 
   const String action_response = sendCommandAndReadReply(F("AT+HTTPACTION=0"), 10000);
+
+  response = readHttpResponseData();
 
   sendCommandAndCheckReply(F("AT+HTTPTERM"), "OK", 200);
 

@@ -1,29 +1,76 @@
-#include <stdio.h>                                                      //Include the required libraries
-#include <string.h>
-
+#include <ArduinoJson.h>
 #include <Seeed_BME280.h>
+#include <TimeLib.h>
 
 #include "adafruit_io_http.h"
 #include "sim7600.h"
 
+#define DEBUG 1
 
-
-#define DEBUG 1                                                      //Define LTE parameters and pin functions
+#define PUMP_TIME_SEC 50
+#define PUMP_STATE_OFF "\"OFF\""
 
 
 BME280 bme280;
 
 // CGACT, AT+CSCLK=2 CGATT
 
-void setup()
-{
+String last_pump_id;
+bool pump_state = false;
+time_t turn_on_time;
+
+void handlePump(const DynamicJsonDocument& pump_value) {
+  // {"id":"0F6WDMZW7HGER0FK0BS2ZZ086F","value":"OFF","feed_id":2423708,"feed_key":"garaz.pump","created_at":"2023-01-05T16:19:44Z","created_epoch":1672935584,"expiration":"2023-02-04T16:19:44Z"}
+  const String pump_value_id = pump_value["id"].as<String>();
+  const String feed_value = pump_value["value"].as<String>();
+
+  SerialUSB.println("Pump state: " + (String)pump_state + ", feed state: " + feed_value);
+
+  if (!pump_state && feed_value == "OFF") {
+    pump_state = false;
+  } else if (!pump_state && feed_value == "ON") {
+    // Pump is off, but might be on.
+    // Check if this signal has not been used before.
+    if (pump_value_id != last_pump_id) {
+      // A new trigger, let's turn on the pump.
+      pump_state = true;
+      last_pump_id = pump_value_id;
+      turn_on_time = now();
+      SerialUSB.println((String)F("Turned on the pump with feed id value: ") + last_pump_id);
+    } else {
+      // This trigger was used already. Let's send an off value to the feed.
+      SerialUSB.println("The feed id value " + last_pump_id + " was used before. Sending OFF to the feed.");
+      postToFeed("pump", PUMP_STATE_OFF);
+    }
+  } else if (pump_state && feed_value == PUMP_STATE_OFF) {
+    // Pump is on, but the feed says off. Let's turn it off.
+    pump_state = false;    
+  } else if (pump_state && feed_value == "ON") {
+    // Pump is on and the feed says on. Let's check if the timeout has been reached.
+    if (numberOfSeconds(now() - turn_on_time) > PUMP_TIME_SEC) {
+      SerialUSB.println(F("The time threshold elapsed, turning off the pump."));
+      pump_state = false;
+      postToFeed("pump", PUMP_STATE_OFF);
+    } else {
+      SerialUSB.println((String)F("Pump time: ") + (String)((int)numberOfSeconds(now() - turn_on_time)) + F(" secs"));
+    }
+  } else {
+    SerialUSB.println(F("Error while handling the pump state."));
+    pump_state = false;
+  }
+
+  // Control the pump according to the state.
+  SerialUSB.println((String)F("Final pump state: ") + (String)pump_state);
+}
+
+void setup() {
   SerialUSB.begin(115200);
   while (!SerialUSB)
   {
     ; // wait for Arduino serial Monitor port to connect
   }
   
-  SerialUSB.println("Hi.");
+  SerialUSB.println(F("\n\nHi."));
   
   initModem();
   SerialUSB.println(F("LTE init complete."));
@@ -33,33 +80,14 @@ void setup()
   //    }
   
   SerialUSB.println(F("BME init complete."));
+
+  pump_state = false;
+  last_pump_id = "";
   
   SerialUSB.println(F("Setup complete."));
 }
 
-bool getFeed(String feed) {
-  String url_str = "AT+HTTPPARA=\"URL\",\"https://io.adafruit.com/api/v2/mdymczyk/feeds/garaz." + feed + "/data?x-aio-key=" + AIO_KEY + "\"\r\n";
-  String content_str = "AT+HTTPPARA=\"CONTENT\",\"application/json\"\r\n";
-//  
-//  // This doesn't work, seems to be a bug within SIM7600. It definitely doesn't show up in the outgoing request.
-//  //String aio_key_str = "AT+HTTPPARA=\"USERDATA\",\"x-aio-key: <key>\"\r\n"; 
-//  
-//  sendData("AT+HTTPINIT\r\n", 2000, DEBUG);
-//  
-//  sendData(url_str, 1000, DEBUG);
-//  sendData(content_str, 1000, DEBUG);
-//  
-//  String response = sendData("AT+HTTPACTION=0\r\n", 10000, DEBUG);
-//
-//  sendData("AT+HTTPREAD=0,100\r\n", 500, DEBUG);
-//
-//  sendData("AT+HTTPTERM\r\n", 500, DEBUG);
-
-  return true;
-}
-
-void loop()
-{
+void loop() {
   float temperature = 0; //bme280.getTemperature();
   float pressure_hpa = 0; //bme280.getPressure() / 100;
   float humidity = 0; //bme280.getHumidity(); 
@@ -76,11 +104,14 @@ void loop()
   SerialUSB.print(pressure_hpa);
   SerialUSB.println("hPa");
   
-  postToFeed("temperature", temperature);
-  postToFeed("pressure", pressure_hpa);
-  postToFeed("humidity", humidity);
+//  postToFeed("temperature", temperature);
+//  postToFeed("pressure", pressure_hpa);
+//  postToFeed("humidity", humidity);
 
-  getLastValueFromFeed("pump");
+  const DynamicJsonDocument feed_value = getLastValueFromFeed("pump"); 
+  if (!feed_value.isNull()) {
+    handlePump(feed_value);
+  }
 
-  delay(5000);
+  delay(1000);
 }

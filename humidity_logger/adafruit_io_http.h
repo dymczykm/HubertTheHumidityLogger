@@ -8,4 +8,5 @@
 bool postToFeed(String feed, const String& value);
 DynamicJsonDocument getLastValueFromFeed(String feed);
 
+// Helper function to get the json content from the HTTP response.
 DynamicJsonDocument getJsonDocumentFromString(const String& json_string);

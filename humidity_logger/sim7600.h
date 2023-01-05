@@ -5,25 +5,19 @@
 
 
 bool initModem();
+int httpPost(const String& url, const String& content_type, const String& data);
+int httpGet(const String& url, const String& content_type, String& response);
 
 void powerUp();
 void cyclePowerKey(); 
-
 void disableEcho();
 
 void waitUntilModemResponds();
 void waitUntilNetworkReady();
 void waitUntilGprsReady();
 
-int parseHttpActionReply(const String& http_action_reply);
-
-int httpPost(const String& url, const String& content_type, const String& data);
-int httpGet(const String& url, const String& content_type, String& response);
-
 bool sendCommandUntilReplyCorrect(const String& command, const String& reply, int timeout_ms);
-
 bool sendCommandAndCheckReply(const String& command, const String& reply, int timeout_ms);
-
 String sendCommandAndReadReply(const String& command, int timeout_ms);
-
+int parseHttpActionReply(const String& http_action_reply);
 String replaceCrLfWithText(const String& input);

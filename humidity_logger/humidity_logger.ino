@@ -6,14 +6,10 @@
 #include "sim7600.h"
 
 #define DEBUG 1
-
 #define PUMP_TIME_SEC 50
 #define PUMP_STATE_OFF "\"OFF\""
 
-
 BME280 bme280;
-
-// CGACT, AT+CSCLK=2 CGATT
 
 String last_pump_id;
 bool pump_state = false;

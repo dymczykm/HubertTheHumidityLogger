@@ -193,9 +193,9 @@ String sendCommandAndReadReply(const String& command, int timeout_ms) {
       response += c;
     }
   }
+  SerialUSB.print("Sent command: " + command + "\r\n");
   if (DEBUG) {
-    SerialUSB.print("Sent command: " + command + "\r\n");
-    //SerialUSB.print("Got response: \r\n" + response);
+    SerialUSB.print("Got response: \r\n" + response);
   }
   return response;
 }

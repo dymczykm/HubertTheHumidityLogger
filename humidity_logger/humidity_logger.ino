@@ -81,6 +81,27 @@ void setup() {
   last_pump_id = "";
   
   SerialUSB.println(F("Setup complete."));
+
+//  pinMode(2, OUTPUT);
+//  pinMode(3, OUTPUT);
+//  pinMode(10, OUTPUT);
+//  pinMode(11, OUTPUT);
+//  pinMode(12, OUTPUT);
+//  pinMode(13, OUTPUT);
+//  pinMode(18, OUTPUT);
+//  pinMode(19, OUTPUT);
+//
+//  while(1) {
+//    digitalWrite(2,  !digitalRead(2));
+//    digitalWrite(3,  !digitalRead(3));
+//    digitalWrite(10, !digitalRead(10));
+//    digitalWrite(11, !digitalRead(11));
+//    digitalWrite(12, !digitalRead(12));
+//    digitalWrite(13, !digitalRead(13));
+//    digitalWrite(18, !digitalRead(18));
+//    digitalWrite(19, !digitalRead(19));
+//    delay(1);
+//  }
 }
 
 void loop() {

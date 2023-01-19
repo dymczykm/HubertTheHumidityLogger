@@ -420,7 +420,7 @@
 
   (footprint "Connector_PinHeader_2.54mm:PinHeader_1x11_P2.54mm_Vertical" (layer "F.Cu")
     (tedit 59FED5CC) (tstamp 4712612c-57dc-4ff7-ab75-ae965ebd2cdc)
-    (at 141.15 100 -90)
+    (at 141.15 52 -90)
     (descr "Through hole straight pin header, 1x11, 2.54mm pitch, single row")
     (tags "Through hole pin header THT 1x11 2.54mm single row")
     (property "Sheetfile" "HumidityLoggerBreakout.kicad_sch")
@@ -640,7 +640,7 @@
 
   (footprint "Connector_PinHeader_2.54mm:PinHeader_1x11_P2.54mm_Vertical" (layer "F.Cu")
     (tedit 59FED5CC) (tstamp 55fd3ddd-456d-4a6a-ac9f-b1fd1cb26d1f)
-    (at 141.15 52 -90)
+    (at 141.15 100 -90)
     (descr "Through hole straight pin header, 1x11, 2.54mm pitch, single row")
     (tags "Through hole pin header THT 1x11 2.54mm single row")
     (property "Sheetfile" "HumidityLoggerBreakout.kicad_sch")

@@ -5,8 +5,8 @@
 
 
 bool initModem();
-int httpPost(const String& url, const String& content_type, const String& data);
-int httpGet(const String& url, const String& content_type, String& response);
+int httpPost(const String& url, const String& content_type, const String& user_data, const String& data);
+int httpGet(const String& url, const String& content_type, const String& user_data, String& response);
 
 void powerUp();
 void cyclePowerKey(); 

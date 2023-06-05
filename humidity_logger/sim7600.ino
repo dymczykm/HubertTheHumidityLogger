@@ -88,13 +88,14 @@ String readHttpResponseData() {
   return reply;
 }
 
-int httpPost(const String& url, const String& content_type, const String& data) {
+int httpPost(const String& url, const String& content_type, const String& user_data, const String& data) {
   const String url_str = (String)F("AT+HTTPPARA=\"URL\",\"") + url + F("\"");
   const String content_str = (String)F("AT+HTTPPARA=\"CONTENT\",\"") + content_type + F("\"");
   
   // This doesn't work on the original Maduino SIM7600E firmware, seems to be a bug in the firmware.
   // After updating to LE11B14V01SIM7600M22_221022 it works.
-  const String key_str = (String)F("AT+HTTPPARA=\"USERDATA\",\"x-aio-key: ") + AIO_KEY + F("\""); 
+  //const String key_str = (String)F("AT+HTTPPARA=\"USERDATA\",\"x-aio-key: ") + AIO_KEY + F("\""); 
+  const String key_str = (String)F("AT+HTTPPARA=\"USERDATA\",\"") + user_data + F("\""); 
    
   const String data_cmd_str = (String)F("AT+HTTPDATA=") + String(data.length()) + F(",9900");
   
@@ -118,13 +119,13 @@ int httpPost(const String& url, const String& content_type, const String& data) 
   return parseHttpActionReply(action_response);
 }
 
-int httpGet(const String& url, const String& content_type, String& response) {
+int httpGet(const String& url, const String& content_type, const String& user_data, String& response) {
   const String url_str = (String)F("AT+HTTPPARA=\"URL\",\"") + url + F("\"");
   const String content_str = (String)F("AT+HTTPPARA=\"CONTENT\",\"") + content_type + F("\"");
 
   // This doesn't work on the original Maduino SIM7600E firmware, seems to be a bug in the firmware.
   // After updating to LE11B14V01SIM7600M22_221022 it works.
-  const String key_str = (String)F("AT+HTTPPARA=\"USERDATA\",\"x-aio-key: ") + AIO_KEY + F("\""); 
+  const String key_str = (String)F("AT+HTTPPARA=\"USERDATA\",\"") + user_data + F("\""); 
 
   if (!sendCommandAndCheckReply(F("AT+HTTPINIT"), "OK", 200)) {
     sendCommandAndCheckReply(F("AT+HTTPTERM"), "OK", 200);

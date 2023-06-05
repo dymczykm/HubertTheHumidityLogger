@@ -4,7 +4,7 @@
 
 bool postToFeed(String feed, const String& value) {
   // Build the URL first.
-  const String url_str = AIO_FEED_URL + feed + "/data?x-aio-key=" + AIO_KEY;
+  const String url_str = AIO_FEED_URL + feed + "/data"; //?x-aio-key=" + AIO_KEY;
   const String data_str = "{\"value\": " + value + "}";
 
   const int post_code = httpPost(url_str, F("application/json"), data_str);

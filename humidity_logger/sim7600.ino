@@ -92,8 +92,9 @@ int httpPost(const String& url, const String& content_type, const String& data) 
   const String url_str = (String)F("AT+HTTPPARA=\"URL\",\"") + url + F("\"");
   const String content_str = (String)F("AT+HTTPPARA=\"CONTENT\",\"") + content_type + F("\"");
   
-  // This doesn't work, seems to be a bug within SIM7600. It definitely doesn't show up in the outgoing request.
-  // String aio_key_str = "AT+HTTPPARA=\"USERDATA\",\"x-aio-key: <key>\""; 
+  // This doesn't work on the original Maduino SIM7600E firmware, seems to be a bug in the firmware.
+  // After updating to LE11B14V01SIM7600M22_221022 it works.
+  const String key_str = (String)F("AT+HTTPPARA=\"USERDATA\",\"x-aio-key: ") + AIO_KEY + F("\""); 
    
   const String data_cmd_str = (String)F("AT+HTTPDATA=") + String(data.length()) + F(",9900");
   
@@ -104,6 +105,7 @@ int httpPost(const String& url, const String& content_type, const String& data) 
   
   sendCommandAndCheckReply(url_str, "OK", 200);
   sendCommandAndCheckReply(content_str, "OK", 200);
+  sendCommandAndCheckReply(key_str, "OK", 200);
   
   sendCommandAndCheckReply(data_cmd_str, "DOWNLOAD", 200);
   delay(100);
@@ -120,6 +122,10 @@ int httpGet(const String& url, const String& content_type, String& response) {
   const String url_str = (String)F("AT+HTTPPARA=\"URL\",\"") + url + F("\"");
   const String content_str = (String)F("AT+HTTPPARA=\"CONTENT\",\"") + content_type + F("\"");
 
+  // This doesn't work on the original Maduino SIM7600E firmware, seems to be a bug in the firmware.
+  // After updating to LE11B14V01SIM7600M22_221022 it works.
+  const String key_str = (String)F("AT+HTTPPARA=\"USERDATA\",\"x-aio-key: ") + AIO_KEY + F("\""); 
+
   if (!sendCommandAndCheckReply(F("AT+HTTPINIT"), "OK", 200)) {
     sendCommandAndCheckReply(F("AT+HTTPTERM"), "OK", 200);
     return -1;  
@@ -127,6 +133,7 @@ int httpGet(const String& url, const String& content_type, String& response) {
   
   sendCommandAndCheckReply(url_str, "OK", 200);
   sendCommandAndCheckReply(content_str, "OK", 200);
+  sendCommandAndCheckReply(key_str, "OK", 200);
 
   const String action_response = sendCommandAndReadReply(F("AT+HTTPACTION=0"), 10000);
 

@@ -121,14 +121,14 @@ void loop() {
   SerialUSB.print(pressure_hpa);
   SerialUSB.println("hPa");
   
-//  postToFeed("temperature", temperature);
-//  postToFeed("pressure", pressure_hpa);
-//  postToFeed("humidity", humidity);
+  //postToFeed("temperature", temperature);
+  //postToFeed("pressure", pressure_hpa);
+  postToFeed("humidity", (arduino::String)humidity);
 
-  const DynamicJsonDocument feed_value = getLastValueFromFeed("pump"); 
-  if (!feed_value.isNull()) {
-    handlePump(feed_value);
-  }
+//  const DynamicJsonDocument feed_value = getLastValueFromFeed("pump"); 
+//  if (!feed_value.isNull()) {
+//    handlePump(feed_value);
+//  }
 
   delay(1000);
 }

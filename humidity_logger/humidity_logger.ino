@@ -1,62 +1,92 @@
+#define BMP280_DEBUG_PRINT
+
 #include <Seeed_BME280.h>
-#include <TimeLib.h>
+//#include <TimeLib.h>
+#include "ArduinoLowPower.h"
 
 #include "influxdb.h"
 #include "sim7600.h"
 
-#define DEBUG 1
+#define DEBUG 0
+
+#define RH_VHIGH_PIN 10
+#define RH_HIGH_PIN 11
+#define RH_OK_PIN 12
+#define RH_LOW_PIN 13
+
+#define ACT_LED_PIN 3
+#define ERR_LED_PIN 17
 
 BME280 bme280;
+//Adafruit_BME280 bme280;
+
+void initIo() {
+  pinMode(RH_VHIGH_PIN, OUTPUT); // Very high RH indicator.
+  pinMode(RH_HIGH_PIN, OUTPUT); // High RH indicator.
+  pinMode(RH_OK_PIN, OUTPUT); // OK RH indicator.
+  pinMode(RH_LOW_PIN, OUTPUT); // Low RH indicator.
+
+  pinMode(ACT_LED_PIN, OUTPUT); // ACT.
+  pinMode(ERR_LED_PIN, OUTPUT); // ERR.
+}
+
+void outputRhLed(const float humidity) {
+  // Turn off all LEDs.
+  digitalWrite(RH_VHIGH_PIN, 0);
+  digitalWrite(RH_HIGH_PIN, 0);
+  digitalWrite(RH_OK_PIN, 0);
+  digitalWrite(RH_LOW_PIN, 0);
+
+  // Turn on the correct LED.
+  if (humidity > 70) {
+    digitalWrite(RH_VHIGH_PIN, 1);
+  } else if (humidity > 60) {
+    digitalWrite(RH_HIGH_PIN, 1);
+  } else if (humidity > 30) {
+    digitalWrite(RH_OK_PIN, 1);
+  } else {
+    digitalWrite(RH_LOW_PIN, 1);
+  }
+}
 
 void setup() {
   SerialUSB.begin(115200);
-  while (!SerialUSB)
+  while (DEBUG && !SerialUSB)
   {
     ; // wait for Arduino serial Monitor port to connect
   }
   
   SerialUSB.println(F("\n\nHi."));
+
+  initIo();
+
+  digitalWrite(ACT_LED_PIN, 1);
+  digitalWrite(ERR_LED_PIN, 1);
   
   initModem();
   SerialUSB.println(F("LTE init complete."));
 
-  //    if(!bme280.init()) {
-  //      Serial.println("BME280 init error!");
-  //    }
-  
-  SerialUSB.println(F("BME init complete."));
+  if (!bme280.init()) {
+    // Hang here forever but it seems the init() routing actually never exits.
+    while(1);
+  }
+
+  digitalWrite(ACT_LED_PIN, 0);
+  digitalWrite(ERR_LED_PIN, 0);
   
   SerialUSB.println(F("Setup complete."));
-
-//  pinMode(2, OUTPUT);
-//  pinMode(3, OUTPUT);
-//  pinMode(10, OUTPUT);
-//  pinMode(11, OUTPUT);
-//  pinMode(12, OUTPUT);
-//  pinMode(13, OUTPUT);
-//  pinMode(18, OUTPUT);
-//  pinMode(19, OUTPUT);
-//
-//  while(1) {
-//    digitalWrite(2,  !digitalRead(2));
-//    digitalWrite(3,  !digitalRead(3));
-//    digitalWrite(10, !digitalRead(10));
-//    digitalWrite(11, !digitalRead(11));
-//    digitalWrite(12, !digitalRead(12));
-//    digitalWrite(13, !digitalRead(13));
-//    digitalWrite(18, !digitalRead(18));
-//    digitalWrite(19, !digitalRead(19));
-//    delay(1);
-//  }
 }
 
 void loop() {
-  float temperature = 0; //bme280.getTemperature();
-  float pressure_hpa = 0; //bme280.getPressure() / 100;
-  float humidity = 0; //bme280.getHumidity(); 
-  temperature = 21;
-  pressure_hpa = 1000;
-  humidity = 55;
+  digitalWrite(ACT_LED_PIN, 0);
+  digitalWrite(ERR_LED_PIN, 0);
+  
+  float temperature = bme280.getTemperature();
+  float pressure_hpa = bme280.getPressure() / 100;
+  float humidity = bme280.getHumidity(); 
+
+  outputRhLed(humidity);  
+
   SerialUSB.print("Temp: ");
   SerialUSB.print(temperature);
   SerialUSB.println("C");
@@ -67,7 +97,15 @@ void loop() {
   SerialUSB.print(pressure_hpa);
   SerialUSB.println("hPa");
   
-  postToDatabase(F("temp_rh"), F("garaz"), temperature, humidity, pressure_hpa);
+  if (postToDatabase(F("temp_rh"), F("garaz"), temperature, humidity, pressure_hpa)) {
+      digitalWrite(ACT_LED_PIN, 1);
+  } else {
+      digitalWrite(ERR_LED_PIN, 1);
+  }
+  LowPower.sleep(2000);
 
-  delay(1000);
+  digitalWrite(ACT_LED_PIN, 0);
+
+  // Sleep for 5 minutes.
+  LowPower.sleep(300000ul);
 }

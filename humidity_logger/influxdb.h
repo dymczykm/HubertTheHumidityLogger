@@ -1,11 +1,5 @@
 #include "sim7600.h"
 
-/*
- curl -XPOST "***REMOVED***" \
-  -H 'Authorization: Token ***REMOVED***:***REMOVED***' \
-  --data-raw "temp_rh,location=garaz temp=17,rh=32"
-*/
-
 #define USER "***REMOVED***"
 #define PASSWORD "***REMOVED***"
 #define DB_URL "***REMOVED***"

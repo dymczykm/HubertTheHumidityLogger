@@ -7,7 +7,7 @@
 #include "influxdb.h"
 #include "sim7600.h"
 
-#define DEBUG 0
+#define DEBUG 1
 
 #define RH_VHIGH_PIN 10
 #define RH_HIGH_PIN 11
@@ -37,16 +37,36 @@ void outputRhLed(const float humidity) {
   digitalWrite(RH_OK_PIN, 0);
   digitalWrite(RH_LOW_PIN, 0);
 
-  // Turn on the correct LED.
+  // Turn on the correct LEDs.
   if (humidity > 70) {
     digitalWrite(RH_VHIGH_PIN, 1);
+    digitalWrite(RH_HIGH_PIN, 1);
+    digitalWrite(RH_OK_PIN, 1);
+    digitalWrite(RH_LOW_PIN, 1);
   } else if (humidity > 60) {
     digitalWrite(RH_HIGH_PIN, 1);
+    digitalWrite(RH_OK_PIN, 1);
+    digitalWrite(RH_LOW_PIN, 1);
   } else if (humidity > 30) {
     digitalWrite(RH_OK_PIN, 1);
+    digitalWrite(RH_LOW_PIN, 1);
   } else {
     digitalWrite(RH_LOW_PIN, 1);
   }
+}
+
+void sleepAndBlinkEverySecond(const unsigned long seconds) {
+  for (int i = 0; i < seconds; ++i) {
+    // Sleep for 5 minutes.
+    LowPower.deepSleep(990);
+    
+    if (i % 2 == 0) {
+      // Only blink on even seconds.
+      digitalWrite(ACT_LED_PIN, 1);
+    }
+    delay(10);
+    digitalWrite(ACT_LED_PIN, 0);
+  } 
 }
 
 void setup() {
@@ -63,7 +83,7 @@ void setup() {
   digitalWrite(ACT_LED_PIN, 1);
   digitalWrite(ERR_LED_PIN, 1);
   
-  initModem();
+//  initModem();
   SerialUSB.println(F("LTE init complete."));
 
   if (!bme280.init()) {
@@ -85,6 +105,9 @@ void loop() {
   float pressure_hpa = bme280.getPressure() / 100;
   float humidity = bme280.getHumidity(); 
 
+  SerialUSB.print(bme280.getHumidity());
+  SerialUSB.println("%");
+
   outputRhLed(humidity);  
 
   SerialUSB.print("Temp: ");
@@ -97,15 +120,15 @@ void loop() {
   SerialUSB.print(pressure_hpa);
   SerialUSB.println("hPa");
   
-  if (postToDatabase(F("temp_rh"), F("garaz"), temperature, humidity, pressure_hpa)) {
+  if (true /*postToDatabase(F("temp_rh"), F("garaz"), temperature, humidity, pressure_hpa)*/) {
       digitalWrite(ACT_LED_PIN, 1);
   } else {
       digitalWrite(ERR_LED_PIN, 1);
   }
-  LowPower.sleep(2000);
+  LowPower.deepSleep(2000);
 
   digitalWrite(ACT_LED_PIN, 0);
 
-  // Sleep for 5 minutes.
-  LowPower.sleep(300000ul);
+  // Sleep for 5 minutes (5*60 = 300 seconds).
+  sleepAndBlinkEverySecond(5/*00*/);
 }

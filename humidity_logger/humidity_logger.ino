@@ -1,7 +1,5 @@
-#define BMP280_DEBUG_PRINT
+#include <Adafruit_BME280.h>
 
-#include <Seeed_BME280.h>
-//#include <TimeLib.h>
 #include "ArduinoLowPower.h"
 
 #include "influxdb.h"
@@ -17,8 +15,7 @@
 #define ACT_LED_PIN 3
 #define ERR_LED_PIN 17
 
-BME280 bme280;
-//Adafruit_BME280 bme280;
+Adafruit_BME280 bme280;
 
 void initIo() {
   pinMode(RH_VHIGH_PIN, OUTPUT); // Very high RH indicator.
@@ -83,13 +80,22 @@ void setup() {
   digitalWrite(ACT_LED_PIN, 1);
   digitalWrite(ERR_LED_PIN, 1);
   
-//  initModem();
+  initModem();
   SerialUSB.println(F("LTE init complete."));
 
-  if (!bme280.init()) {
-    // Hang here forever but it seems the init() routing actually never exits.
-    while(1);
+  if (!bme280.begin(BME280_ADDRESS_ALTERNATE)) {
+    digitalWrite(ACT_LED_PIN, 0);
+    while(1) {
+      digitalWrite(ERR_LED_PIN, !digitalRead(ERR_LED_PIN));
+      delay(50);
+    }
   }
+
+  bme280.setSampling(Adafruit_BME280::MODE_FORCED,
+                    Adafruit_BME280::SAMPLING_X1,   // temperature
+                    Adafruit_BME280::SAMPLING_X1,   // pressure
+                    Adafruit_BME280::SAMPLING_X1,   // humidity
+                    Adafruit_BME280::FILTER_OFF);
 
   digitalWrite(ACT_LED_PIN, 0);
   digitalWrite(ERR_LED_PIN, 0);
@@ -100,16 +106,17 @@ void setup() {
 void loop() {
   digitalWrite(ACT_LED_PIN, 0);
   digitalWrite(ERR_LED_PIN, 0);
-  
-  float temperature = bme280.getTemperature();
-  float pressure_hpa = bme280.getPressure() / 100;
-  float humidity = bme280.getHumidity(); 
 
-  SerialUSB.print(bme280.getHumidity());
-  SerialUSB.println("%");
+  bme280.takeForcedMeasurement();
+  delay(200);
+  
+  const float temperature = bme280.readTemperature();
+  const float pressure_hpa = bme280.readPressure() / 100;
+  const float humidity = bme280.readHumidity(); 
 
   outputRhLed(humidity);  
 
+  SerialUSB.println("");
   SerialUSB.print("Temp: ");
   SerialUSB.print(temperature);
   SerialUSB.println("C");
@@ -120,7 +127,7 @@ void loop() {
   SerialUSB.print(pressure_hpa);
   SerialUSB.println("hPa");
   
-  if (true /*postToDatabase(F("temp_rh"), F("garaz"), temperature, humidity, pressure_hpa)*/) {
+  if (postToDatabase(F("temp_rh"), F("garaz"), temperature, humidity, pressure_hpa)) {
       digitalWrite(ACT_LED_PIN, 1);
   } else {
       digitalWrite(ERR_LED_PIN, 1);

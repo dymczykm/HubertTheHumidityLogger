@@ -2,9 +2,13 @@
 #define SIM7600_RESET_PIN 6
 #define SIM7600_PWRKEY_PIN 5
 #define SIM7600_FLIGHT_PIN 7
+#define SIM7600_DTR_PIN 9
 
 
 bool initModem();
+void modemSleep();
+void modemWakeup();
+
 int httpPost(const String& url, const String& content_type, const String& user_data, const String& data);
 int httpGet(const String& url, const String& content_type, const String& user_data, String& response);
 

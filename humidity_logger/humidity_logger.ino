@@ -5,7 +5,7 @@
 #include "influxdb.h"
 #include "sim7600.h"
 
-#define DEBUG 1
+#define DEBUG 0
 
 #define RH_VHIGH_PIN 10
 #define RH_HIGH_PIN 11
@@ -106,6 +106,7 @@ void setup() {
 void loop() {
   digitalWrite(ACT_LED_PIN, 0);
   digitalWrite(ERR_LED_PIN, 0);
+  modemWakeup();
 
   bme280.takeForcedMeasurement();
   delay(200);
@@ -132,10 +133,12 @@ void loop() {
   } else {
       digitalWrite(ERR_LED_PIN, 1);
   }
+
+  modemSleep();
   LowPower.deepSleep(2000);
 
   digitalWrite(ACT_LED_PIN, 0);
 
   // Sleep for 5 minutes (5*60 = 300 seconds).
-  sleepAndBlinkEverySecond(5/*00*/);
+  sleepAndBlinkEverySecond(300);
 }

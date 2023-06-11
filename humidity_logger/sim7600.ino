@@ -5,10 +5,26 @@ bool initModem() {
 
   waitUntilModemResponds();
   disableEcho();
+  enableDtrSleep();
+ 
   waitUntilNetworkReady();
   waitUntilGprsReady();
 
   return true;
+}
+
+void modemSleep() {
+  if (DEBUG) {
+    SerialUSB.println("Modem sleep");
+  }
+  digitalWrite(SIM7600_DTR_PIN, HIGH);
+}
+
+void modemWakeup() {
+  if (DEBUG) {
+    SerialUSB.println("Modem wakeup");
+  }
+  digitalWrite(SIM7600_DTR_PIN, LOW);
 }
 
 void powerUp() {
@@ -17,9 +33,11 @@ void powerUp() {
   pinMode(SIM7600_RESET_PIN, OUTPUT);
   pinMode(SIM7600_PWRKEY_PIN, OUTPUT);
   pinMode(SIM7600_FLIGHT_PIN, OUTPUT);
+  pinMode(SIM7600_DTR_PIN, OUTPUT);
     
   digitalWrite(SIM7600_RESET_PIN, LOW);
   digitalWrite(SIM7600_FLIGHT_PIN, LOW);
+  digitalWrite(SIM7600_DTR_PIN, LOW);
 
   delay(100);
   cyclePowerKey();
@@ -55,6 +73,10 @@ void waitUntilNetworkReady() {
 
 void waitUntilGprsReady() {
   sendCommandUntilReplyCorrect(F("AT+CGATT?"), F("+CGATT: 1\nOK"), 500, 20);
+}
+
+void enableDtrSleep() {
+  sendCommandAndCheckReply(F("AT+CSCLK=1"), F("OK"), 500);
 }
 
 int parseHttpActionReply(const String& http_action_reply) {

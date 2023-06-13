@@ -52,17 +52,17 @@ void outputRhLed(const float humidity) {
   }
 }
 
-void sleepAndBlinkEverySecond(const unsigned long seconds) {
+void sleepAndBlinkEverySecond(const unsigned long seconds, const int pin_number) {
   for (int i = 0; i < seconds; ++i) {
     // Sleep for 5 minutes.
     LowPower.deepSleep(990);
     
     if (i % 2 == 0) {
       // Only blink on even seconds.
-      digitalWrite(ACT_LED_PIN, 1);
+      digitalWrite(pin_number, 1);
     }
     delay(10);
-    digitalWrite(ACT_LED_PIN, 0);
+    digitalWrite(pin_number, 0);
   } 
 }
 
@@ -127,18 +127,22 @@ void loop() {
   SerialUSB.print("Pressure: ");
   SerialUSB.print(pressure_hpa);
   SerialUSB.println("hPa");
-  
+
+  bool success = false;
   if (postToDatabase(F("temp_rh"), F("garaz"), temperature, humidity, pressure_hpa)) {
       digitalWrite(ACT_LED_PIN, 1);
+      success = true;
   } else {
       digitalWrite(ERR_LED_PIN, 1);
+      success = false;
   }
 
   modemSleep();
   LowPower.deepSleep(2000);
 
   digitalWrite(ACT_LED_PIN, 0);
+  digitalWrite(ERR_LED_PIN, 0);
 
   // Sleep for 5 minutes (5*60 = 300 seconds).
-  sleepAndBlinkEverySecond(300);
+  sleepAndBlinkEverySecond(300, success ? ACT_LED_PIN : ERR_LED_PIN);
 }

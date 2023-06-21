@@ -79,6 +79,20 @@ void setup() {
 
   digitalWrite(ACT_LED_PIN, 1);
   digitalWrite(ERR_LED_PIN, 1);
+
+  delay(100);
+  digitalWrite(RH_VHIGH_PIN, 1);
+  delay(100);
+  digitalWrite(RH_HIGH_PIN, 1);
+  delay(100);
+  digitalWrite(RH_OK_PIN, 1);
+  delay(100);
+  digitalWrite(RH_LOW_PIN, 1);
+  delay(200);
+  digitalWrite(RH_VHIGH_PIN, 0);
+  digitalWrite(RH_HIGH_PIN, 0);
+  digitalWrite(RH_OK_PIN, 0);
+  digitalWrite(RH_LOW_PIN, 0);
   
   initModem();
   SerialUSB.println(F("LTE init complete."));
